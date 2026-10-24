@@ -46,9 +46,13 @@ async function sqliteStore(): Promise<Store> {
   const { DatabaseSync } = await import("node:sqlite");
   const path = await import("node:path");
   const fs = await import("node:fs");
-  const dir = path.join(process.cwd(), "data");
-  fs.mkdirSync(dir, { recursive: true });
-  const db = new DatabaseSync(path.join(dir, "app.db"));
+  // On Vercel (and most serverless hosts) the project folder is read-only;
+  // /tmp is writable but per-instance, so data there is demo-grade only.
+  const file =
+    process.env.DB_PATH ??
+    (process.env.VERCEL ? "/tmp/app.db" : path.join(process.cwd(), "data", "app.db"));
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const db = new DatabaseSync(file);
   db.exec(`CREATE TABLE IF NOT EXISTS items (
     id TEXT PRIMARY KEY,
     kind TEXT NOT NULL,
